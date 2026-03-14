@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "e1Mlysioax0aT8vBR1kfI"
+uri = "file://m2training-code.tar.gz"
+type = "unspecified"
+title = "M² Training — Full Source Code"
