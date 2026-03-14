@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,91 +14,190 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { TRAINER_PASSWORD } from "@/utils/storage";
 
-type Mode = "choose" | "trainer" | "client" | "signup";
+WebBrowser.maybeCompleteAuthSession();
 
+const ADMIN_EMAIL = "matthewmichels4@gmail.com";
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+type Mode = "choose" | "email" | "email-trainer-pw" | "trainer-pw";
+
+// ── Inner component that uses Google hook (only when Client ID is set) ───────
+type GoogleBtnProps = {
+  onSuccess: (token: string) => void;
+  onError: (msg: string) => void;
+};
+
+function GoogleSignInButton({ onSuccess, onError }: GoogleBtnProps) {
+  const [loading, setLoading] = useState(false);
+  const [, response, promptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const token = response.authentication?.accessToken;
+      if (token) {
+        onSuccess(token);
+      } else {
+        setLoading(false);
+        onError("Google sign-in failed. No access token received.");
+      }
+    } else if (response?.type === "error") {
+      setLoading(false);
+      onError("Google sign-in failed. Try again.");
+    } else if (response?.type === "dismiss") {
+      setLoading(false);
+    }
+  }, [response]);
+
+  return (
+    <Pressable
+      style={[styles.socialBtn, loading && styles.btnDisabled]}
+      onPress={() => {
+        setLoading(true);
+        promptAsync();
+      }}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={C.text} />
+      ) : (
+        <View style={styles.googleIcon}>
+          <Text style={styles.googleIconText}>G</Text>
+        </View>
+      )}
+      <Text style={styles.socialBtnText}>Continue with Google</Text>
+    </Pressable>
+  );
+}
+
+function GoogleButtonDisabled() {
+  return (
+    <Pressable style={[styles.socialBtn, styles.btnDisabled]}>
+      <View style={styles.googleIcon}>
+        <Text style={styles.googleIconText}>G</Text>
+      </View>
+      <Text style={[styles.socialBtnText, { color: C.dim }]}>
+        Continue with Google
+      </Text>
+      <Text style={{ color: C.dim, fontSize: 11 }}>(setup needed)</Text>
+    </Pressable>
+  );
+}
+
+// ── Main login screen ────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const { data, loginTrainer, loginClient, signUp } = useApp();
   const insets = useSafeAreaInsets();
+
   const [mode, setMode] = useState<Mode>("choose");
-  const [pw, setPw] = useState("");
-  const [user, setUser] = useState("");
-  const [cpw, setCpw] = useState("");
+  const [email, setEmail] = useState("");
+  const [trainerPw, setTrainerPw] = useState("");
   const [err, setErr] = useState("");
 
-  const [suName, setSuName] = useState("");
-  const [suEmail, setSuEmail] = useState("");
-  const [suUser, setSuUser] = useState("");
-  const [suPw, setSuPw] = useState("");
-  const [suPw2, setSuPw2] = useState("");
-  const [suGoal, setSuGoal] = useState("");
+  const handleGoogleToken = async (token: string) => {
+    try {
+      const res = await fetch("https://www.googleapis.com/userinfo/v2/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const info = (await res.json()) as {
+        email?: string;
+        name?: string;
+      };
+      const googleEmail = (info.email ?? "").toLowerCase();
+      const googleName = info.name ?? googleEmail;
 
-  const tryTrainer = () => {
-    if (pw === TRAINER_PASSWORD) {
+      if (googleEmail === ADMIN_EMAIL) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        loginTrainer();
+        router.replace("/(trainer)");
+        return;
+      }
+
+      finishClientLogin(googleEmail, googleName);
+    } catch {
+      setErr("Could not fetch your Google profile. Try again.");
+    }
+  };
+
+  // ── Email-only login ────────────────────────────────────────────────────
+  const handleEmailContinue = () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !/\S+@\S+\.\S+/.test(trimmed)) {
+      setErr("Enter a valid email address.");
+      return;
+    }
+    setErr("");
+
+    if (trimmed === ADMIN_EMAIL) {
+      setMode("email-trainer-pw");
+      return;
+    }
+
+    finishClientLogin(trimmed, "");
+  };
+
+  const handleEmailTrainerPw = () => {
+    if (trainerPw === TRAINER_PASSWORD) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       loginTrainer();
       router.replace("/(trainer)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setErr("Incorrect password.");
-      setPw("");
+      setTrainerPw("");
     }
   };
 
-  const tryClient = () => {
-    const input = user.trim().toLowerCase();
-    const f = data.clients.find(
-      (c) =>
-        (c.username?.toLowerCase() === input ||
-          c.email?.toLowerCase() === input) &&
-        c.clientPassword === cpw
-    );
-    if (f) {
+  const handleTrainerPw = () => {
+    if (trainerPw === TRAINER_PASSWORD) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      loginClient(f.id);
-      router.replace("/(client)");
+      loginTrainer();
+      router.replace("/(trainer)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setErr("Incorrect username, email, or password.");
-      setCpw("");
+      setErr("Incorrect password.");
+      setTrainerPw("");
     }
   };
 
-  const trySignUp = () => {
-    if (
-      !suName.trim() ||
-      !suUser.trim() ||
-      !suPw.trim() ||
-      !suEmail.trim()
-    ) {
-      setErr("All fields are required.");
-      return;
+  const finishClientLogin = (emailAddr: string, name: string) => {
+    const existing = data.clients.find(
+      (c) => c.email?.toLowerCase() === emailAddr
+    );
+    if (existing) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      loginClient(existing.id);
+      router.replace("/(client)");
+    } else {
+      const displayName = name || emailAddr.split("@")[0];
+      const newId = signUp({
+        name: displayName,
+        email: emailAddr,
+        username: emailAddr,
+        clientPassword: "",
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      loginClient(newId);
+      router.replace("/(client)");
     }
-    if (suPw !== suPw2) {
-      setErr("Passwords don't match.");
-      return;
+  };
+
+  const goBack = () => {
+    if (mode !== "choose") {
+      setMode("choose");
+      setErr("");
+      setEmail("");
+      setTrainerPw("");
+    } else {
+      router.back();
     }
-    if (
-      data.clients.find(
-        (c) => c.username?.toLowerCase() === suUser.toLowerCase()
-      )
-    ) {
-      setErr("Username already taken.");
-      return;
-    }
-    const id = signUp({
-      name: suName,
-      email: suEmail,
-      goal: suGoal,
-      username: suUser,
-      clientPassword: suPw,
-    });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    loginClient(id);
-    router.replace("/(client)");
   };
 
   return (
@@ -111,17 +211,7 @@ export default function LoginScreen() {
           { paddingTop: Platform.OS === "web" ? 67 : insets.top + 10 },
         ]}
       >
-        <Pressable
-          onPress={() => {
-            if (mode !== "choose") {
-              setMode("choose");
-              setErr("");
-            } else {
-              router.back();
-            }
-          }}
-          style={styles.backBtn}
-        >
+        <Pressable onPress={goBack} style={styles.backBtn}>
           <Feather name="arrow-left" size={20} color={C.dim} />
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
@@ -135,224 +225,160 @@ export default function LoginScreen() {
           styles.scroll,
           {
             paddingBottom:
-              (Platform.OS === "web" ? 34 : insets.bottom) + 24,
+              (Platform.OS === "web" ? 34 : insets.bottom) + 40,
           },
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── CHOOSE ─────────────────────────────────────────────────── */}
         {mode === "choose" && (
           <View style={styles.center}>
-            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.title}>Sign in</Text>
             <Text style={styles.subtitle}>
-              20+ years. 50+ college athletes produced. Thousands trained. Zero injuries. Real training, real results.
+              20+ years. 50+ college athletes produced. Zero injuries.
             </Text>
-            <View style={styles.choiceGroup}>
-              <Pressable
-                style={[styles.choiceBtn, { backgroundColor: C.orange }]}
-                onPress={() => {
-                  setMode("client");
-                  setErr("");
-                }}
-              >
-                <Text style={styles.choiceBtnText}>Client login</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.choiceBtn, { backgroundColor: C.green }]}
-                onPress={() => {
-                  setMode("signup");
-                  setErr("");
-                }}
-              >
-                <Text style={styles.choiceBtnText}>Create account</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.choiceBtn,
-                  {
-                    backgroundColor: "transparent",
-                    borderWidth: 1,
-                    borderColor: C.border,
-                  },
-                ]}
-                onPress={() => {
-                  setMode("trainer");
-                  setErr("");
-                }}
-              >
-                <Text style={[styles.choiceBtnText, { color: C.dim }]}>
-                  Trainer login
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.back()}
-                style={{ marginTop: 4 }}
-              >
-                <Text style={styles.backLink}>← Back to home</Text>
-              </Pressable>
+
+            {GOOGLE_CLIENT_ID ? (
+              <GoogleSignInButton
+                onSuccess={handleGoogleToken}
+                onError={(msg) => setErr(msg)}
+              />
+            ) : (
+              <GoogleButtonDisabled />
+            )}
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
             </View>
-          </View>
-        )}
 
-        {mode === "trainer" && (
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>Trainer Access</Text>
-            <Text style={styles.formLabel}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Trainer password"
-              placeholderTextColor={C.muted}
-              secureTextEntry
-              value={pw}
-              onChangeText={(t) => {
-                setPw(t);
+            <Pressable
+              style={styles.emailBtn}
+              onPress={() => {
+                setMode("email");
                 setErr("");
               }}
-              onSubmitEditing={tryTrainer}
-              returnKeyType="go"
-              autoFocus
-            />
-            {!!err && <Text style={styles.errText}>{err}</Text>}
-            <Pressable style={styles.primaryBtn} onPress={tryTrainer}>
-              <Text style={styles.primaryBtnText}>Sign in</Text>
+            >
+              <Feather name="mail" size={18} color="#fff" />
+              <Text style={styles.emailBtnText}>Continue with Email</Text>
             </Pressable>
-          </View>
-        )}
 
-        {mode === "client" && (
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>Client Login</Text>
-            <Text style={styles.formLabel}>Username or email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Your username or email"
-              placeholderTextColor={C.muted}
-              value={user}
-              onChangeText={(t) => {
-                setUser(t);
-                setErr("");
-              }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoFocus
-            />
-            <Text style={styles.formLabel}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Your password"
-              placeholderTextColor={C.muted}
-              secureTextEntry
-              value={cpw}
-              onChangeText={(t) => {
-                setCpw(t);
-                setErr("");
-              }}
-              onSubmitEditing={tryClient}
-              returnKeyType="go"
-            />
-            {!!err && <Text style={styles.errText}>{err}</Text>}
-            <Pressable style={styles.primaryBtn} onPress={tryClient}>
-              <Text style={styles.primaryBtnText}>Sign in</Text>
-            </Pressable>
+            {!!err && (
+              <Text style={[styles.errText, { marginTop: 16 }]}>{err}</Text>
+            )}
+
             <Pressable
               onPress={() => {
-                setMode("signup");
+                setMode("trainer-pw");
                 setErr("");
               }}
-              style={{ marginTop: 16, alignItems: "center" }}
+              style={{ marginTop: 32 }}
             >
-              <Text style={styles.linkText}>
-                No account?{" "}
-                <Text style={{ color: C.orange }}>Sign up</Text>
-              </Text>
+              <Text style={styles.trainerLink}>Trainer access</Text>
+            </Pressable>
+
+            <Pressable onPress={() => router.back()} style={{ marginTop: 12 }}>
+              <Text style={styles.backLink}>Back to home</Text>
             </Pressable>
           </View>
         )}
 
-        {mode === "signup" && (
+        {/* ── EMAIL ENTRY ────────────────────────────────────────────── */}
+        {mode === "email" && (
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Create Account</Text>
-            <Text style={styles.formLabel}>Full name *</Text>
+            <Text style={styles.formTitle}>Your email</Text>
+            <Text style={styles.formSub}>
+              Enter your email to sign in or create an account.
+            </Text>
+
             <TextInput
-              style={styles.input}
-              placeholder="John Smith"
-              placeholderTextColor={C.muted}
-              value={suName}
+              style={[styles.input, !!err && styles.inputErr]}
+              placeholder="you@email.com"
+              placeholderTextColor={C.dim}
+              value={email}
               onChangeText={(t) => {
-                setSuName(t);
-                setErr("");
-              }}
-              autoFocus
-            />
-            <Text style={styles.formLabel}>Email *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="john@email.com"
-              placeholderTextColor={C.muted}
-              value={suEmail}
-              onChangeText={(t) => {
-                setSuEmail(t);
+                setEmail(t);
                 setErr("");
               }}
               keyboardType="email-address"
               autoCapitalize="none"
-            />
-            <Text style={styles.formLabel}>Username *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="jsmith"
-              placeholderTextColor={C.muted}
-              value={suUser}
-              onChangeText={(t) => {
-                setSuUser(t);
-                setErr("");
-              }}
-              autoCapitalize="none"
-            />
-            <Text style={styles.formLabel}>
-              Goal{" "}
-              <Text style={{ color: C.muted, fontFamily: "Inter_400Regular" }}>
-                (optional)
-              </Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Get stronger"
-              placeholderTextColor={C.muted}
-              value={suGoal}
-              onChangeText={setSuGoal}
-            />
-            <Text style={styles.formLabel}>Password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Choose a password"
-              placeholderTextColor={C.muted}
-              secureTextEntry
-              value={suPw}
-              onChangeText={(t) => {
-                setSuPw(t);
-                setErr("");
-              }}
-            />
-            <Text style={styles.formLabel}>Confirm password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm"
-              placeholderTextColor={C.muted}
-              secureTextEntry
-              value={suPw2}
-              onChangeText={(t) => {
-                setSuPw2(t);
-                setErr("");
-              }}
-              onSubmitEditing={trySignUp}
+              autoFocus
               returnKeyType="go"
+              onSubmitEditing={handleEmailContinue}
             />
             {!!err && <Text style={styles.errText}>{err}</Text>}
+
+            <Pressable style={styles.primaryBtn} onPress={handleEmailContinue}>
+              <Text style={styles.primaryBtnText}>Continue</Text>
+              <Feather name="arrow-right" size={16} color="#fff" />
+            </Pressable>
+
+            <Text style={styles.legalNote}>
+              New to M² Training? An account is created automatically.
+            </Text>
+          </View>
+        )}
+
+        {/* ── ADMIN EMAIL → TRAINER PASSWORD ─────────────────────────── */}
+        {mode === "email-trainer-pw" && (
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>Trainer Access</Text>
+            <Text style={styles.formSub}>
+              Welcome back, Matt. Enter your trainer password to continue.
+            </Text>
+
+            <TextInput
+              style={[styles.input, !!err && styles.inputErr]}
+              placeholder="Trainer password"
+              placeholderTextColor={C.dim}
+              secureTextEntry
+              value={trainerPw}
+              onChangeText={(t) => {
+                setTrainerPw(t);
+                setErr("");
+              }}
+              autoFocus
+              returnKeyType="go"
+              onSubmitEditing={handleEmailTrainerPw}
+            />
+            {!!err && <Text style={styles.errText}>{err}</Text>}
+
             <Pressable
               style={[styles.primaryBtn, { backgroundColor: C.green }]}
-              onPress={trySignUp}
+              onPress={handleEmailTrainerPw}
             >
-              <Text style={styles.primaryBtnText}>Create account</Text>
+              <Text style={styles.primaryBtnText}>Sign in as Trainer</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* ── DIRECT TRAINER PASSWORD ─────────────────────────────────── */}
+        {mode === "trainer-pw" && (
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>Trainer Access</Text>
+
+            <TextInput
+              style={[styles.input, !!err && styles.inputErr]}
+              placeholder="Trainer password"
+              placeholderTextColor={C.dim}
+              secureTextEntry
+              value={trainerPw}
+              onChangeText={(t) => {
+                setTrainerPw(t);
+                setErr("");
+              }}
+              autoFocus
+              returnKeyType="go"
+              onSubmitEditing={handleTrainerPw}
+            />
+            {!!err && <Text style={styles.errText}>{err}</Text>}
+
+            <Pressable
+              style={[styles.primaryBtn, { backgroundColor: C.green }]}
+              onPress={handleTrainerPw}
+            >
+              <Text style={styles.primaryBtnText}>Sign in</Text>
             </Pressable>
           </View>
         )}
@@ -386,46 +412,104 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 48,
   },
   center: {
     alignItems: "center",
   },
   title: {
     color: C.text,
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: "Inter_700Bold",
     marginBottom: 8,
   },
   subtitle: {
     color: C.dim,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
-    marginBottom: 36,
+    marginBottom: 40,
     textAlign: "center",
+    lineHeight: 22,
   },
-  choiceGroup: {
+  socialBtn: {
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 340,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-    alignItems: "center",
+    backgroundColor: "#1e1e1c",
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
   },
-  choiceBtn: {
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  socialBtnText: {
+    color: C.text,
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    flex: 1,
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleIconText: {
+    color: "#4285F4",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     width: "100%",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
+    maxWidth: 340,
+    marginVertical: 20,
   },
-  choiceBtnText: {
-    color: C.white,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.border,
+  },
+  dividerText: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  emailBtn: {
+    width: "100%",
+    maxWidth: 340,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: C.orange,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  emailBtnText: {
+    color: "#fff",
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
   },
-  backLink: {
-    color: C.muted,
+  trainerLink: {
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
-    marginTop: 8,
+  },
+  backLink: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
   },
   form: {
     maxWidth: 400,
@@ -434,28 +518,30 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     color: C.text,
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: "Inter_700Bold",
-    marginBottom: 24,
-    textAlign: "center",
+    marginBottom: 8,
   },
-  formLabel: {
+  formSub: {
     color: C.dim,
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 6,
-    letterSpacing: 0.5,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+    marginBottom: 28,
   },
   input: {
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 8,
-    padding: 13,
+    borderRadius: 10,
+    padding: 14,
     color: C.text,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Inter_400Regular",
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  inputErr: {
+    borderColor: C.red,
   },
   errText: {
     color: C.red,
@@ -466,19 +552,26 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: C.orange,
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     marginTop: 4,
   },
   primaryBtnText: {
-    color: C.white,
-    fontSize: 15,
+    color: "#fff",
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
   },
-  linkText: {
+  legalNote: {
     color: C.dim,
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginTop: 20,
+    lineHeight: 18,
   },
 });
