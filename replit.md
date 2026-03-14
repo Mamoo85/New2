@@ -50,6 +50,33 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
+### `artifacts/mobile` (`@workspace/mobile`)
+
+Full-featured **M² Training** mobile app built with Expo React Native and Expo Router.
+
+**Features:**
+- Public home screen: hero, quotes, Words from Matt, Monthly Focus, active challenges leaderboard, Matt's Never Wrong CTA
+- Client auth: username/password login, signup with goal setting
+- Trainer auth: password-protected dashboard (`coach123`)
+- Client area (tab navigation):
+  - Progress screen: lift PRs, chart per lift (SVG), session log
+  - Schedule screen: 3-step booking flow, session types, history
+  - Challenges screen: log progress, leaderboard modal, opt-in toggle
+  - Messages screen: send categorized messages to Matt, see replies
+- Trainer dashboard (tab navigation):
+  - Clients tab: search clients, view detail, log lifts, chart, trainer note, reply to messages, view assessments
+  - Bookings tab: manage bookings, set status, manage availability slots
+  - Challenges tab: create/edit/delete challenges, toggle active, view leaderboard
+  - Settings tab: edit home content, toggle session types, manage Matt's Never Wrong help requests
+- Help screen: Matt's Never Wrong - anyone can submit, pay-what-you-feel
+
+**Tech:**
+- State: AsyncStorage via `utils/storage.ts` + `context/AppContext.tsx`
+- Navigation: Stack + nested Tabs (Expo Router), liquid glass on iOS 26+
+- Charts: react-native-svg (hand-drawn, no library)
+- Icons: @expo/vector-icons (Feather, Ionicons, SymbolView)
+- Theme: dark (#111110 bg, #e8621a orange, #4caf7d green)
+
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
