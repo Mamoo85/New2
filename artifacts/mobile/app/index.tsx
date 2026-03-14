@@ -16,6 +16,7 @@ import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { BUSINESS } from "@/constants/contact";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Logo } from "@/components/ui/Logo";
 import { DEFAULT_QUOTES, Challenge } from "@/utils/storage";
 
 export default function HomeScreen() {
@@ -38,7 +39,7 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <Text style={styles.loadingText}>M² Training</Text>
+        <Logo size="lg" animate />
       </View>
     );
   }
@@ -70,8 +71,7 @@ export default function HomeScreen() {
         ]}
       >
         <View>
-          <Text style={styles.navTitle}>M² Training</Text>
-          <Text style={styles.navSub}>Real training, real results</Text>
+          <Logo size="sm" />
         </View>
         <View style={styles.navRight}>
           <Pressable

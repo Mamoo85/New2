@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Logo } from "@/components/ui/Logo";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { useApp } from "@/context/AppContext";
@@ -216,7 +217,7 @@ export default function LoginScreen() {
           <Feather name="arrow-left" size={20} color={C.dim} />
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={styles.logo}>M² Training</Text>
+          <Logo size="md" />
         </View>
         <View style={{ width: 36 }} />
       </View>

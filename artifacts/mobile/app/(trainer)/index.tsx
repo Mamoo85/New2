@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Logo } from "@/components/ui/Logo";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import {
@@ -205,8 +206,8 @@ export default function ClientsScreen() {
           { paddingTop: Platform.OS === "web" ? 67 : insets.top + 8 },
         ]}
       >
-        <View>
-          <Text style={styles.headerTitle}>M² Training</Text>
+        <View style={{ gap: 2 }}>
+          <Logo size="sm" />
           <Text style={styles.headerSub}>Trainer Dashboard</Text>
         </View>
         <Pressable
