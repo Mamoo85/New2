@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   bookingNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   historyDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   typeDuration: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   paymentNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginBottom: 14,

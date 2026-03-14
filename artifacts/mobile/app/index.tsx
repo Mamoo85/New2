@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   footerText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },

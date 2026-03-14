@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   challengeMeta: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   dimText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },

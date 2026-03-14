@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   msgDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -354,10 +354,9 @@ const styles = StyleSheet.create({
     backgroundColor: `${C.orange}0d`,
     borderLeftWidth: 3,
     borderLeftColor: C.orange,
-    borderRadius: 0,
+    borderRadius: 4,
     padding: 10,
     marginTop: 10,
-    borderRadius: 4,
   },
   replyHeader: {
     flexDirection: "row",
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   pendingText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",

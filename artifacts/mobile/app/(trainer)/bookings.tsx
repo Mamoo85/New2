@@ -429,13 +429,13 @@ const BookingStyles = StyleSheet.create({
     marginTop: 2,
   },
   dateTime: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginTop: 3,
   },
   note: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
@@ -455,7 +455,7 @@ const BookingStyles = StyleSheet.create({
     paddingTop: 10,
   },
   changeLabel: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginBottom: 8,
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     textAlign: "center",

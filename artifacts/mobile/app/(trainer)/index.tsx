@@ -1415,7 +1415,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -1464,7 +1464,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   clientMeta: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
@@ -1551,7 +1551,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
   prLabel: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 10,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
@@ -1641,7 +1641,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dimText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
   },
@@ -1659,7 +1659,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   entryNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
@@ -1675,7 +1675,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   entryDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 10,
     fontFamily: "Inter_400Regular",
   },
@@ -1748,7 +1748,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   msgDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -1960,7 +1960,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.orange,
   },
   dashTabText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
@@ -1979,7 +1979,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${C.orange}22`,
   },
   dashTabBadgeText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 10,
     fontFamily: "Inter_700Bold",
   },
@@ -2001,7 +2001,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
   mailingNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
@@ -2101,13 +2101,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signupMeta: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginTop: 1,
   },
   signupNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
@@ -2165,7 +2165,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   orderDetailLabel: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
@@ -2178,7 +2178,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   orderSectionLabel: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 0.3,
@@ -2228,7 +2228,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   orderDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },

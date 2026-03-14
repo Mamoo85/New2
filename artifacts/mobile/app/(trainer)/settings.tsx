@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   sessionMeta: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   helpMeta: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },

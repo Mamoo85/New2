@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     color: C.text,
   },
   statLabel: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 10,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   logDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 10,
     fontFamily: "Inter_400Regular",
   },

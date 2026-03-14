@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   logEntryDate: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   logEntryNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   lbGoal: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     marginBottom: 14,

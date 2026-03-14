@@ -354,6 +354,7 @@ export default function StoreScreen() {
 
 const styles = StyleSheet.create({
   header: {
+    backgroundColor: C.surface,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -411,7 +412,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionSub: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     lineHeight: 20,
@@ -526,7 +527,7 @@ const styles = StyleSheet.create({
     color: C.orange,
   },
   levelDesc: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     lineHeight: 18,
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buyNote: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     textAlign: "center",

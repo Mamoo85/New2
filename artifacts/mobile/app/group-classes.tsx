@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   classMetaText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
   disclaimer: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     textAlign: "center",

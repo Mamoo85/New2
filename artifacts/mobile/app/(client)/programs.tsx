@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   emptySubText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dimText: {
-    color: C.muted,
+    color: C.dim,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
   },
