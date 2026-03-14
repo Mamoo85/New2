@@ -144,6 +144,31 @@ export default function LoginScreen() {
   const replitPending = React.useRef(false);
   const googleWebProcessed = useRef(false);
 
+  const handleGoogleToken = async (token: string) => {
+    try {
+      const res = await fetch("https://www.googleapis.com/userinfo/v2/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const info = (await res.json()) as {
+        email?: string;
+        name?: string;
+      };
+      const googleEmail = (info.email ?? "").toLowerCase();
+      const googleName = info.name ?? googleEmail;
+
+      if (googleEmail === ADMIN_EMAIL) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        loginTrainer();
+        router.replace("/(trainer)");
+        return;
+      }
+
+      finishClientLogin(googleEmail, googleName);
+    } catch {
+      setErr("Could not fetch your Google profile. Try again.");
+    }
+  };
+
   // ── Web: parse #access_token returned by Google's redirect flow ─────────────
   useEffect(() => {
     if (Platform.OS !== "web" || googleWebProcessed.current) return;
@@ -186,31 +211,6 @@ export default function LoginScreen() {
       finishClientLogin(userEmail, userName);
     }
   }, [auth.user]);
-
-  const handleGoogleToken = async (token: string) => {
-    try {
-      const res = await fetch("https://www.googleapis.com/userinfo/v2/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const info = (await res.json()) as {
-        email?: string;
-        name?: string;
-      };
-      const googleEmail = (info.email ?? "").toLowerCase();
-      const googleName = info.name ?? googleEmail;
-
-      if (googleEmail === ADMIN_EMAIL) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        loginTrainer();
-        router.replace("/(trainer)");
-        return;
-      }
-
-      finishClientLogin(googleEmail, googleName);
-    } catch {
-      setErr("Could not fetch your Google profile. Try again.");
-    }
-  };
 
   // ── Email-only login ────────────────────────────────────────────────────
   const handleEmailContinue = () => {
