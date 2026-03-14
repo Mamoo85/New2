@@ -33,3 +33,5 @@ channel = "stable-25_05"
 
 [userenv.shared]
 EXPO_PUBLIC_GOOGLE_CLIENT_ID = "1057012782177-dv2pn01a3ei1n41ekcuu6icomaerk8h7.apps.googleusercontent.com"
+EXPO_PUBLIC_REPL_ID = "a02124c3-a055-41e9-a2fd-c26d8f5138db"
+EXPO_PUBLIC_DOMAIN = "a02124c3-a055-41e9-a2fd-c26d8f5138db-00-3mg7ylzxh061b.kirk.replit.dev"
