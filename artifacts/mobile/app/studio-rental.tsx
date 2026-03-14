@@ -13,8 +13,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import C from "@/constants/colors";
+import { BUSINESS } from "@/constants/contact";
 
-const CONTACT_EMAIL = "matthewmichels4@gmail.com";
+const CONTACT_EMAIL = BUSINESS.email;
 const SUBJECT = "Studio Rental Inquiry";
 
 const WHAT_IS_INCLUDED: { icon: keyof typeof Feather.glyphMap; text: string }[] = [

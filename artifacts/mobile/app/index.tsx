@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { BUSINESS } from "@/constants/contact";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { DEFAULT_QUOTES, Challenge } from "@/utils/storage";
 
@@ -403,6 +405,30 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* FIND US */}
+        <View style={styles.findUsCard}>
+          <Text style={styles.findUsLabel}>FIND US</Text>
+          <Text style={styles.findUsName}>{BUSINESS.name}</Text>
+          <Text style={styles.findUsAddress}>{BUSINESS.address1}{"\n"}{BUSINESS.address2}</Text>
+          <Pressable
+            style={styles.mapsBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL(BUSINESS.mapsUrl).catch(() => {});
+            }}
+          >
+            <Feather name="map-pin" size={14} color={C.white} />
+            <Text style={styles.mapsBtnText}>Get Directions</Text>
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              Linking.openURL(`mailto:${BUSINESS.email}`).catch(() => {})
+            }
+          >
+            <Text style={styles.findUsEmail}>{BUSINESS.email}</Text>
+          </Pressable>
+        </View>
+
         {/* JOKE BUTTON */}
         <Pressable
           style={styles.jokeBtn}
@@ -416,10 +442,30 @@ export default function HomeScreen() {
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>M² Training · Real results.</Text>
-          <Pressable onPress={() => router.push("/login")}>
-            <Text style={styles.footerLink}>Client Portal</Text>
-          </Pressable>
+          <Text style={styles.footerText}>
+            © {new Date().getFullYear()} M² Training · Grosse Pointe Park, MI
+          </Text>
+          <View style={styles.footerLinks}>
+            <Pressable onPress={() => router.push("/login")}>
+              <Text style={styles.footerLink}>Client Portal</Text>
+            </Pressable>
+            <Text style={styles.footerDot}>·</Text>
+            <Pressable
+              onPress={() =>
+                Linking.openURL(`mailto:${BUSINESS.email}`).catch(() => {})
+              }
+            >
+              <Text style={styles.footerLink}>Contact</Text>
+            </Pressable>
+            <Text style={styles.footerDot}>·</Text>
+            <Pressable
+              onPress={() =>
+                Linking.openURL(BUSINESS.mapsUrl).catch(() => {})
+              }
+            >
+              <Text style={styles.footerLink}>Directions</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -991,23 +1037,83 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     lineHeight: 20,
   },
+  findUsCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    gap: 8,
+  },
+  findUsLabel: {
+    color: C.dim,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 2,
+  },
+  findUsName: {
+    color: C.text,
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  findUsAddress: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  mapsBtn: {
+    backgroundColor: C.orange,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  mapsBtnText: {
+    color: C.white,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  findUsEmail: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
   footer: {
     marginHorizontal: 16,
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: C.border,
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   footerText: {
-    color: C.dim,
-    fontSize: 12,
+    color: C.muted,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
+  },
+  footerLinks: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   footerLink: {
     color: C.orange,
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  footerDot: {
+    color: C.muted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
   jokeBtn: {
     marginHorizontal: 16,

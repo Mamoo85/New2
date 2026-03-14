@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "M2 Training",
+    "name": "M² Training",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "m2training",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -14,11 +14,35 @@
       "backgroundColor": "#111110"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.m2training.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Required to upload form check videos.",
+        "NSPhotoLibraryUsageDescription": "Required to select videos from your library."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.m2training.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#111110"
+      }
+    },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon.png",
+      "bundler": "metro",
+      "output": "single",
+      "meta": {
+        "author": "Matt Michels",
+        "description": "Personal training with Matt Michels. 20+ years of experience, 1000s of clients trained with zero injuries. Online coaching, meet prep, team programs, and studio training in Grosse Pointe Park, Michigan.",
+        "og:title": "M² Training — Real Training, Real Results",
+        "og:description": "20+ years. 1000s of clients. Zero injuries. Personal training, online coaching, meet prep and team programs by Matt Michels in Grosse Pointe Park, MI.",
+        "og:type": "website",
+        "og:locale": "en_US",
+        "twitter:card": "summary",
+        "twitter:title": "M² Training",
+        "twitter:description": "Real training, real results. Personal training by Matt Michels — Grosse Pointe Park, MI."
+      }
     },
     "plugins": [
       [

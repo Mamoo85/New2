@@ -18,11 +18,12 @@ import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { BUSINESS } from "@/constants/contact";
 import { TRAINER_PASSWORD } from "@/utils/storage";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const ADMIN_EMAIL = "matthewmichels4@gmail.com";
+const ADMIN_EMAIL = BUSINESS.email;
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 type Mode = "choose" | "email" | "email-trainer-pw" | "trainer-pw";
