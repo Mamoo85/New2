@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Logo } from "@/components/ui/Logo";
+import { useAuth } from "@/lib/auth";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { useApp } from "@/context/AppContext";
@@ -96,12 +97,30 @@ function GoogleButtonDisabled() {
 // ── Main login screen ────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const { data, loginTrainer, loginClient, signUp } = useApp();
+  const auth = useAuth();
   const insets = useSafeAreaInsets();
 
   const [mode, setMode] = useState<Mode>("choose");
   const [email, setEmail] = useState("");
   const [trainerPw, setTrainerPw] = useState("");
   const [err, setErr] = useState("");
+
+  const replitPending = React.useRef(false);
+
+  useEffect(() => {
+    if (!replitPending.current || !auth.user) return;
+    replitPending.current = false;
+    const userEmail = (auth.user.email ?? "").toLowerCase();
+    const userName = [auth.user.firstName, auth.user.lastName]
+      .filter(Boolean)
+      .join(" ") || userEmail.split("@")[0];
+    if (userEmail === ADMIN_EMAIL) {
+      loginTrainer();
+      router.replace("/(trainer)");
+    } else {
+      finishClientLogin(userEmail, userName);
+    }
+  }, [auth.user]);
 
   const handleGoogleToken = async (token: string) => {
     try {
@@ -264,6 +283,23 @@ export default function LoginScreen() {
             >
               <Feather name="mail" size={18} color="#fff" />
               <Text style={styles.emailBtnText}>Continue with Email</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.replitBtn}
+              onPress={() => {
+                replitPending.current = true;
+                setErr("");
+                auth.login();
+              }}
+              disabled={auth.isLoading}
+            >
+              {auth.isLoading ? (
+                <ActivityIndicator size="small" color={C.orange} />
+              ) : (
+                <Feather name="user-check" size={18} color={C.orange} />
+              )}
+              <Text style={styles.replitBtnText}>Continue with Replit</Text>
             </Pressable>
 
             {!!err && (
@@ -500,6 +536,26 @@ const styles = StyleSheet.create({
   },
   emailBtnText: {
     color: "#fff",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  replitBtn: {
+    width: "100%",
+    maxWidth: 340,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.orange,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  replitBtnText: {
+    color: C.orange,
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
   },
