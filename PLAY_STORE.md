@@ -40,14 +40,14 @@ eas init
 This creates your project on Expo's servers and fills in the `projectId` in `app.json`.
 If prompted, confirm the project name and slug.
 
-## Step 4: Generate a 1024x1024 App Icon
+## Step 4: App Icon
 
-The Play Store requires a 1024x1024 PNG icon. The current `icon.png` is 150x100.
-Create or commission a 1024x1024 version of the M² Training logo on a dark (#111110) background
-and replace `artifacts/mobile/assets/images/icon.png`.
+The app icon (`artifacts/mobile/assets/images/icon.png`) is already **1024×1024** and meets
+the Play Store requirement. No action needed for basic submission.
 
-The adaptive icon foreground should be the logo centered with padding (Google recommends
-the logo sits within the inner 66% of the canvas).
+If you want a custom-designed icon later, replace the file with a 1024×1024 PNG on a dark
+(#111110) background. Google recommends the logo sits within the inner 66% of the canvas for
+the adaptive icon foreground.
 
 ## Step 5: Build the Android App Bundle
 
@@ -162,7 +162,8 @@ To skip manual uploads, set up a Google Play service account:
 
 1. In Play Console, go to **Settings > API access**.
 2. Create a service account and download the JSON key file.
-3. Save it as `artifacts/mobile/google-services.json`.
+3. Save it as `artifacts/mobile/play-service-account.json` (and update `serviceAccountKeyPath`
+   in `eas.json` to match this filename).
 4. Run: `eas submit --platform android --profile production`
 
 This uploads directly to Play Console without manual steps.
