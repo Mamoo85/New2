@@ -724,6 +724,24 @@ export default function ClientsScreen() {
             const thisMonday = getMonday();
             const coachingClients = data.clients.filter(c => !!c.subscription);
 
+            const savePkg = () => {
+              if (planModal === null) return;
+              const price = parseFloat(pkgDraft.monthlyPrice);
+              if (isNaN(price) || price < 0) return;
+              const info: SubscriptionInfo = {
+                status: "active",
+                startedAt: data.clients.find(c => c.id === planModal)?.subscription?.startedAt ?? nowTs(),
+                packageName: pkgDraft.packageName.trim() || "Custom Coaching Package",
+                workoutFrequency: pkgDraft.includeWorkouts ? pkgDraft.workoutFrequency : null,
+                checkinFrequency: pkgDraft.includeCheckins ? pkgDraft.checkinFrequency : null,
+                monthlyPrice: price,
+                notes: pkgDraft.notes.trim() || undefined,
+              };
+              setClientSubscription(planModal, info);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setPlanModal(null);
+            };
+
             const handleCheckInReply = (checkInId: string) => {
               if (!checkInReplyText.trim()) return;
               replyToCheckIn(checkInId, checkInReplyText.trim());
@@ -751,24 +769,6 @@ export default function ClientsScreen() {
                 notes: "",
               });
               setPlanModal(clientId);
-            };
-
-            const savePkg = () => {
-              if (planModal === null) return;
-              const price = parseFloat(pkgDraft.monthlyPrice);
-              if (isNaN(price) || price < 0) return;
-              const info: SubscriptionInfo = {
-                status: "active",
-                startedAt: data.clients.find(c => c.id === planModal)?.subscription?.startedAt ?? nowTs(),
-                packageName: pkgDraft.packageName.trim() || "Custom Coaching Package",
-                workoutFrequency: pkgDraft.includeWorkouts ? pkgDraft.workoutFrequency : null,
-                checkinFrequency: pkgDraft.includeCheckins ? pkgDraft.checkinFrequency : null,
-                monthlyPrice: price,
-                notes: pkgDraft.notes.trim() || undefined,
-              };
-              setClientSubscription(planModal, info);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              setPlanModal(null);
             };
 
             return (
