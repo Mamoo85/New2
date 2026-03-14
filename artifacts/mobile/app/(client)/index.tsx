@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
-import { LIFTS, fmtS, fmt } from "@/utils/storage";
+import { LIFTS, SUBSCRIPTION_PLANS, fmtS, fmt, getMonday } from "@/utils/storage";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { LiftChart } from "@/components/LiftChart";
 
@@ -24,6 +25,13 @@ export default function ClientProgressScreen() {
 
   const client = data.clients.find((c) => c.id === currentClientId);
   if (!client) return null;
+
+  const thisMonday = getMonday();
+  const hasCheckedIn = (data.weeklyCheckIns || []).some(
+    (c) => c.clientId === currentClientId && c.weekOf === thisMonday
+  );
+  const sub = client.subscription;
+  const planInfo = sub ? SUBSCRIPTION_PLANS[sub.plan] : null;
 
   const sessions = [...new Set((client.entries || []).map((e) => e.date))].length;
   const PRs: Record<string, number | null> = {};
@@ -82,6 +90,60 @@ export default function ClientProgressScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* SUBSCRIPTION PLAN CARD */}
+        {!!planInfo && sub && (
+          <View
+            style={[
+              styles.planCard,
+              { borderColor: `${planInfo.color}55` },
+            ]}
+          >
+            <View style={styles.planRow}>
+              <View
+                style={[
+                  styles.planBadge,
+                  { backgroundColor: `${planInfo.color}22`, borderColor: `${planInfo.color}55` },
+                ]}
+              >
+                <Text style={[styles.planBadgeText, { color: planInfo.color }]}>
+                  {planInfo.label}
+                </Text>
+              </View>
+              <Text style={styles.planPrice}>${planInfo.price}/mo</Text>
+            </View>
+            <Text style={styles.planTagline}>{planInfo.tagline}</Text>
+            <Text style={styles.planStatus}>
+              {sub.status === "active"
+                ? "Your coaching plan is active"
+                : sub.status === "paused"
+                ? "Your plan is currently paused"
+                : "Plan cancelled"}
+            </Text>
+          </View>
+        )}
+
+        {/* CHECK-IN CTA */}
+        {!hasCheckedIn && (
+          <Pressable
+            style={styles.checkInCta}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/(client)/checkin");
+            }}
+          >
+            <View style={styles.checkInCtaLeft}>
+              <Feather name="check-circle" size={20} color={C.orange} />
+              <View>
+                <Text style={styles.checkInCtaTitle}>Submit your check-in</Text>
+                <Text style={styles.checkInCtaSub}>
+                  Matt's waiting for your update this week
+                </Text>
+              </View>
+            </View>
+            <Feather name="chevron-right" size={18} color={C.orange} />
+          </Pressable>
+        )}
+
         {/* STATS ROW */}
         <ScrollView
           horizontal
@@ -386,6 +448,73 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   logDate: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  planCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  planRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  planBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  planBadgeText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
+  planPrice: {
+    color: C.text,
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  planTagline: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 4,
+  },
+  planStatus: {
+    color: C.green,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  checkInCta: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: `${C.orange}44`,
+    borderRadius: 10,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  checkInCtaLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  checkInCtaTitle: {
+    color: C.text,
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 2,
+  },
+  checkInCtaSub: {
     color: C.dim,
     fontSize: 12,
     fontFamily: "Inter_400Regular",

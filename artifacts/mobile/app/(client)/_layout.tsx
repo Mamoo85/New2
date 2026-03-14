@@ -10,11 +10,21 @@ import { router } from "expo-router";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 
+function getThisMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  return d.toISOString().split("T")[0];
+}
+
 function NativeTabLayout() {
   const { data, currentClientId } = useApp();
   const newProgramCount = (data.customPrograms || []).filter(
     (p) => p.clientId === currentClientId && p.status === "delivered" && !p.clientViewedAt
   ).length;
+  const hasCheckedIn = (data.weeklyCheckIns || []).some(
+    (c) => c.clientId === currentClientId && c.weekOf === getThisMonday()
+  );
 
   return (
     <NativeTabs>
@@ -22,13 +32,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
         <Label>Progress</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="schedule">
-        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
-        <Label>Schedule</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="challenges">
-        <Icon sf={{ default: "trophy", selected: "trophy.fill" }} />
-        <Label>Challenges</Label>
+      <NativeTabs.Trigger name="checkin" badge={hasCheckedIn ? undefined : "!"}>
+        <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
+        <Label>Check-In</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="programs" badge={newProgramCount > 0 ? String(newProgramCount) : undefined}>
         <Icon sf={{ default: "doc.text", selected: "doc.text.fill" }} />
@@ -37,6 +43,10 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="messages">
         <Icon sf={{ default: "message", selected: "message.fill" }} />
         <Label>Messages</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="schedule">
+        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
+        <Label>Schedule</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -47,6 +57,9 @@ function ClassicTabLayout() {
   const newProgramCount = (data.customPrograms || []).filter(
     (p) => p.clientId === currentClientId && p.status === "delivered" && !p.clientViewedAt
   ).length;
+  const hasCheckedIn = (data.weeklyCheckIns || []).some(
+    (c) => c.clientId === currentClientId && c.weekOf === getThisMonday()
+  );
 
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
@@ -92,27 +105,17 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="schedule"
+        name="checkin"
         options={{
-          title: "Schedule",
+          title: "Check-In",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="calendar" tintColor={color} size={24} />
+              <SymbolView name="checkmark.circle" tintColor={color} size={24} />
             ) : (
-              <Feather name="calendar" size={22} color={color} />
+              <Feather name="check-circle" size={22} color={color} />
             ),
-        }}
-      />
-      <Tabs.Screen
-        name="challenges"
-        options={{
-          title: "Challenges",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="trophy" tintColor={color} size={24} />
-            ) : (
-              <Feather name="award" size={22} color={color} />
-            ),
+          tabBarBadge: hasCheckedIn ? undefined : "!",
+          tabBarBadgeStyle: { backgroundColor: C.orange },
         }}
       />
       <Tabs.Screen
@@ -138,6 +141,30 @@ function ClassicTabLayout() {
               <SymbolView name="message" tintColor={color} size={24} />
             ) : (
               <Feather name="message-square" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: "Schedule",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="calendar" tintColor={color} size={24} />
+            ) : (
+              <Feather name="calendar" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="challenges"
+        options={{
+          title: "Challenges",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="trophy" tintColor={color} size={24} />
+            ) : (
+              <Feather name="award" size={22} color={color} />
             ),
         }}
       />

@@ -15,15 +15,35 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
-import { LIFTS, fmt, fmtS, today, uid } from "@/utils/storage";
+import {
+  LIFTS,
+  SUBSCRIPTION_PLANS,
+  SubscriptionPlan,
+  fmt,
+  fmtS,
+  getMonday,
+  nowTs,
+  today,
+  uid,
+} from "@/utils/storage";
 import { Tag } from "@/components/ui/Tag";
 import { LiftChart } from "@/components/LiftChart";
 
 type ClientView = "overview" | "log" | "messages" | "assessments" | "programs";
-type DashTab = "clients" | "mailing" | "signups" | "orders" | "inquiries";
+type DashTab = "clients" | "mailing" | "signups" | "orders" | "inquiries" | "coaching";
 
 export default function ClientsScreen() {
-  const { data, updateData, logout, saveProgram, deliverProgram, markStoreOrderSent, markInquiryContacted } = useApp();
+  const {
+    data,
+    updateData,
+    logout,
+    saveProgram,
+    deliverProgram,
+    markStoreOrderSent,
+    markInquiryContacted,
+    replyToCheckIn,
+    setClientSubscription,
+  } = useApp();
   const insets = useSafeAreaInsets();
   const [selId, setSelId] = useState<number | null>(null);
   const [view, setView] = useState<ClientView>("overview");
@@ -49,6 +69,12 @@ export default function ClientsScreen() {
   const [replyText, setReplyText] = useState("");
 
   const [activeLift, setActiveLift] = useState(LIFTS[0]);
+
+  // Coaching tab state
+  const [coachingExpanded, setCoachingExpanded] = useState<number | null>(null);
+  const [checkInReplyText, setCheckInReplyText] = useState("");
+  const [planModal, setPlanModal] = useState<number | null>(null);
+  const [planSaving, setPlanSaving] = useState(false);
 
   // Program builder
   const [pgTitle, setPgTitle] = useState("");
@@ -191,11 +217,15 @@ export default function ClientsScreen() {
             style={styles.dashTabs}
             contentContainerStyle={styles.dashTabsContent}
           >
-            {(["clients", "mailing", "signups", "orders", "inquiries"] as DashTab[]).map((tab) => {
-              const label = tab === "clients" ? "Clients" : tab === "mailing" ? "Mailing List" : tab === "signups" ? "Classes" : tab === "orders" ? "Store Orders" : "Inquiries";
+            {(["clients", "coaching", "mailing", "signups", "orders", "inquiries"] as DashTab[]).map((tab) => {
+              const label = tab === "clients" ? "Clients" : tab === "coaching" ? "Coaching" : tab === "mailing" ? "Mailing List" : tab === "signups" ? "Classes" : tab === "orders" ? "Store Orders" : "Inquiries";
               const pendingOrders = (data.storeOrders || []).filter(o => o.status !== "sent").length;
               const pendingInquiries = (data.formCheckRequests || []).filter(r => r.status === "pending").length + (data.coachingInquiries || []).filter(r => r.status === "pending").length;
-              const count = tab === "clients" ? data.clients.length : tab === "mailing"
+              const thisMonday = getMonday();
+              const coachingClients = data.clients.filter(c => c.subscription && c.subscription.status === "active").length;
+              const count = tab === "clients" ? data.clients.length : tab === "coaching"
+                ? coachingClients
+                : tab === "mailing"
                 ? [...new Set([
                     ...data.clients.filter(c => !!c.email).map(c => c.email!),
                     ...(data.groupClassInterests || []).map(g => g.email),
@@ -667,6 +697,332 @@ export default function ClientsScreen() {
                             <Text style={styles.inqDate}>
                               {new Date(ci.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </ScrollView>
+            );
+          })()}
+
+          {/* COACHING TAB */}
+          {dashTab === "coaching" && (() => {
+            const thisMonday = getMonday();
+            const coachingClients = data.clients.filter(c => !!c.subscription);
+
+            const handleCheckInReply = (checkInId: string) => {
+              if (!checkInReplyText.trim()) return;
+              replyToCheckIn(checkInId, checkInReplyText.trim());
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setCheckInReplyText("");
+            };
+
+            const handleSetPlan = (clientId: number, plan: SubscriptionPlan | null) => {
+              if (plan === null) {
+                setClientSubscription(clientId, null);
+              } else {
+                setClientSubscription(clientId, {
+                  plan,
+                  status: "active",
+                  startedAt: nowTs(),
+                });
+              }
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setPlanModal(null);
+            };
+
+            return (
+              <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100 }]}>
+                {coachingClients.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Feather name="users" size={36} color={C.muted} />
+                    <Text style={styles.emptyText}>No coaching clients yet.</Text>
+                    <Text style={styles.emptySubText}>
+                      When you assign a subscription plan to a client, they appear here.
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.inqSectionLabel}>ONLINE COACHING CLIENTS</Text>
+                    {coachingClients.map((client) => {
+                      const sub = client.subscription!;
+                      const planInfo = SUBSCRIPTION_PLANS[sub.plan];
+                      const thisWeekCheckIn = (data.weeklyCheckIns || []).find(
+                        ci => ci.clientId === client.id && ci.weekOf === thisMonday
+                      );
+                      const isExpanded = coachingExpanded === client.id;
+                      const prevCheckIns = [...(data.weeklyCheckIns || [])]
+                        .filter(ci => ci.clientId === client.id && ci.weekOf !== thisMonday)
+                        .sort((a, b) => b.weekOf.localeCompare(a.weekOf))
+                        .slice(0, 3);
+
+                      return (
+                        <View key={client.id} style={styles.coachCard}>
+                          {/* CLIENT HEADER */}
+                          <Pressable
+                            style={styles.coachHeader}
+                            onPress={() => {
+                              setCoachingExpanded(isExpanded ? null : client.id);
+                              setCheckInReplyText("");
+                              Haptics.selectionAsync();
+                            }}
+                          >
+                            <View style={styles.coachHeaderLeft}>
+                              <Text style={styles.coachName}>{client.name}</Text>
+                              <View style={styles.coachMeta}>
+                                <View style={[styles.coachPlanBadge, { backgroundColor: `${planInfo.color}22`, borderColor: `${planInfo.color}55` }]}>
+                                  <Text style={[styles.coachPlanText, { color: planInfo.color }]}>
+                                    {planInfo.label} · ${planInfo.price}/mo
+                                  </Text>
+                                </View>
+                                <View style={[
+                                  styles.coachStatusDot,
+                                  { backgroundColor: sub.status === "active" ? C.green : sub.status === "paused" ? C.orange : "#e84040" }
+                                ]} />
+                                <Text style={styles.coachStatusLabel}>{sub.status}</Text>
+                              </View>
+                            </View>
+                            <View style={styles.coachHeaderRight}>
+                              {thisWeekCheckIn ? (
+                                <View style={styles.checkInDone}>
+                                  <Feather name="check-circle" size={14} color={C.green} />
+                                  <Text style={[styles.checkInStatusText, { color: C.green }]}>Checked in</Text>
+                                </View>
+                              ) : (
+                                <View style={styles.checkInMissing}>
+                                  <Feather name="alert-circle" size={14} color="#e84040" />
+                                  <Text style={[styles.checkInStatusText, { color: "#e84040" }]}>No check-in</Text>
+                                </View>
+                              )}
+                              <Feather
+                                name={isExpanded ? "chevron-up" : "chevron-down"}
+                                size={16}
+                                color={C.dim}
+                                style={{ marginTop: 6 }}
+                              />
+                            </View>
+                          </Pressable>
+
+                          {/* EXPANDED DETAIL */}
+                          {isExpanded && (
+                            <View style={styles.coachDetail}>
+                              {/* THIS WEEK'S CHECK-IN */}
+                              <Text style={styles.coachSectionLabel}>THIS WEEK</Text>
+                              {thisWeekCheckIn ? (
+                                <View style={styles.coachCheckInCard}>
+                                  <View style={styles.coachRatingRow}>
+                                    <View style={styles.coachRatingItem}>
+                                      <Text style={styles.coachRatingLabel}>Training</Text>
+                                      <Text style={[
+                                        styles.coachRatingVal,
+                                        { color: thisWeekCheckIn.trainingQuality >= 7 ? C.green : thisWeekCheckIn.trainingQuality >= 5 ? C.orange : "#e84040" }
+                                      ]}>
+                                        {thisWeekCheckIn.trainingQuality}/10
+                                      </Text>
+                                    </View>
+                                    <View style={styles.coachRatingItem}>
+                                      <Text style={styles.coachRatingLabel}>Energy</Text>
+                                      <Text style={[
+                                        styles.coachRatingVal,
+                                        { color: thisWeekCheckIn.energyRecovery >= 7 ? C.green : thisWeekCheckIn.energyRecovery >= 5 ? C.orange : "#e84040" }
+                                      ]}>
+                                        {thisWeekCheckIn.energyRecovery}/10
+                                      </Text>
+                                    </View>
+                                    {!!thisWeekCheckIn.bodyWeight && (
+                                      <View style={styles.coachRatingItem}>
+                                        <Text style={styles.coachRatingLabel}>Weight</Text>
+                                        <Text style={styles.coachRatingVal}>{thisWeekCheckIn.bodyWeight} lbs</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                  {!!thisWeekCheckIn.wins && (
+                                    <View style={styles.coachFieldRow}>
+                                      <Text style={styles.coachFieldLabel}>WINS</Text>
+                                      <Text style={styles.coachFieldValue}>{thisWeekCheckIn.wins}</Text>
+                                    </View>
+                                  )}
+                                  {!!thisWeekCheckIn.struggles && (
+                                    <View style={styles.coachFieldRow}>
+                                      <Text style={styles.coachFieldLabel}>STRUGGLES</Text>
+                                      <Text style={styles.coachFieldValue}>{thisWeekCheckIn.struggles}</Text>
+                                    </View>
+                                  )}
+                                  {!!thisWeekCheckIn.questionsForMatt && (
+                                    <View style={styles.coachFieldRow}>
+                                      <Text style={[styles.coachFieldLabel, { color: C.orange }]}>QUESTION</Text>
+                                      <Text style={styles.coachFieldValue}>{thisWeekCheckIn.questionsForMatt}</Text>
+                                    </View>
+                                  )}
+
+                                  {thisWeekCheckIn.trainerReply ? (
+                                    <View style={styles.coachReplyDone}>
+                                      <Feather name="check-circle" size={13} color={C.green} />
+                                      <Text style={styles.coachReplyDoneText}>Replied: {thisWeekCheckIn.trainerReply}</Text>
+                                    </View>
+                                  ) : (
+                                    <View style={styles.coachReplyBox}>
+                                      <TextInput
+                                        style={styles.coachReplyInput}
+                                        value={checkInReplyText}
+                                        onChangeText={setCheckInReplyText}
+                                        placeholder="Reply to check-in..."
+                                        placeholderTextColor={C.muted}
+                                        multiline
+                                      />
+                                      <Pressable
+                                        style={[styles.coachReplyBtn, !checkInReplyText.trim() && { opacity: 0.4 }]}
+                                        disabled={!checkInReplyText.trim()}
+                                        onPress={() => handleCheckInReply(thisWeekCheckIn.id)}
+                                      >
+                                        <Feather name="send" size={14} color="#fff" />
+                                        <Text style={styles.coachReplyBtnText}>Send Reply</Text>
+                                      </Pressable>
+                                    </View>
+                                  )}
+                                </View>
+                              ) : (
+                                <View style={styles.coachNoCheckIn}>
+                                  <Feather name="alert-circle" size={16} color="#e84040" />
+                                  <Text style={styles.coachNoCheckInText}>
+                                    {client.name.split(" ")[0]} hasn't submitted a check-in this week.
+                                  </Text>
+                                </View>
+                              )}
+
+                              {/* PREV CHECK-INS */}
+                              {prevCheckIns.length > 0 && (
+                                <>
+                                  <Text style={[styles.coachSectionLabel, { marginTop: 14 }]}>PREVIOUS</Text>
+                                  {prevCheckIns.map((ci) => (
+                                    <View key={ci.id} style={styles.coachPrevCard}>
+                                      <View style={styles.coachPrevTop}>
+                                        <Text style={styles.coachPrevWeek}>
+                                          Week of {fmt(ci.weekOf)}
+                                        </Text>
+                                        <View style={styles.coachPrevRatings}>
+                                          <Text style={styles.coachPrevRating}>T: {ci.trainingQuality}/10</Text>
+                                          <Text style={styles.coachPrevRating}>E: {ci.energyRecovery}/10</Text>
+                                        </View>
+                                      </View>
+                                      {!!ci.questionsForMatt && (
+                                        <Text style={styles.coachPrevQ} numberOfLines={2}>Q: {ci.questionsForMatt}</Text>
+                                      )}
+                                    </View>
+                                  ))}
+                                </>
+                              )}
+
+                              {/* SUBSCRIPTION MANAGEMENT */}
+                              <Text style={[styles.coachSectionLabel, { marginTop: 14 }]}>SUBSCRIPTION</Text>
+                              <View style={styles.coachSubRow}>
+                                {(["standard", "full", "elite"] as SubscriptionPlan[]).map((p) => {
+                                  const pi = SUBSCRIPTION_PLANS[p];
+                                  const isActive = sub.plan === p;
+                                  return (
+                                    <Pressable
+                                      key={p}
+                                      style={[
+                                        styles.coachSubPill,
+                                        isActive && { backgroundColor: `${pi.color}22`, borderColor: `${pi.color}66` },
+                                      ]}
+                                      onPress={() => {
+                                        handleSetPlan(client.id, p);
+                                      }}
+                                    >
+                                      <Text style={[styles.coachSubPillText, isActive && { color: pi.color }]}>
+                                        {pi.label}
+                                      </Text>
+                                      <Text style={[styles.coachSubPillPrice, isActive && { color: pi.color }]}>
+                                        ${pi.price}
+                                      </Text>
+                                    </Pressable>
+                                  );
+                                })}
+                              </View>
+                              <View style={styles.coachSubActions}>
+                                <Pressable
+                                  style={[
+                                    styles.coachSubStatusBtn,
+                                    sub.status === "active" && { borderColor: C.green, backgroundColor: `${C.green}15` },
+                                  ]}
+                                  onPress={() => {
+                                    setClientSubscription(client.id, {
+                                      ...sub,
+                                      status: sub.status === "active" ? "paused" : "active",
+                                    });
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                  }}
+                                >
+                                  <Text style={[styles.coachSubStatusText, sub.status === "active" && { color: C.green }]}>
+                                    {sub.status === "active" ? "Active — tap to pause" : "Paused — tap to reactivate"}
+                                  </Text>
+                                </Pressable>
+                                <Pressable
+                                  style={styles.coachSubRemoveBtn}
+                                  onPress={() => {
+                                    handleSetPlan(client.id, null);
+                                  }}
+                                >
+                                  <Text style={styles.coachSubRemoveText}>Remove plan</Text>
+                                </Pressable>
+                              </View>
+
+                              {/* QUICK EMAIL */}
+                              {!!client.email && (
+                                <Pressable
+                                  style={styles.coachEmailBtn}
+                                  onPress={() => Linking.openURL(
+                                    `mailto:${client.email}?subject=M² Coaching — Weekly Update&body=Hi ${client.name.split(" ")[0]},\n\n`
+                                  ).catch(() => {})}
+                                >
+                                  <Feather name="mail" size={14} color={C.dim} />
+                                  <Text style={styles.coachEmailBtnText}>Email {client.name.split(" ")[0]}</Text>
+                                </Pressable>
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+
+                    {/* ALL CLIENTS WITHOUT A PLAN */}
+                    {data.clients.filter(c => !c.subscription).length > 0 && (
+                      <>
+                        <Text style={[styles.inqSectionLabel, { marginTop: 16 }]}>ASSIGN A PLAN</Text>
+                        {data.clients.filter(c => !c.subscription).map((client) => (
+                          <View key={client.id} style={styles.coachNoPlanCard}>
+                            <View>
+                              <Text style={styles.coachNoPlanName}>{client.name}</Text>
+                              {!!client.email && (
+                                <Text style={styles.coachNoPlanEmail}>{client.email}</Text>
+                              )}
+                            </View>
+                            <View style={styles.coachNoPlanActions}>
+                              {(["standard", "full", "elite"] as SubscriptionPlan[]).map((p) => {
+                                const pi = SUBSCRIPTION_PLANS[p];
+                                return (
+                                  <Pressable
+                                    key={p}
+                                    style={[styles.coachNoPlanBtn, { borderColor: `${pi.color}55` }]}
+                                    onPress={() => {
+                                      setClientSubscription(client.id, {
+                                        plan: p,
+                                        status: "active",
+                                        startedAt: nowTs(),
+                                      });
+                                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                    }}
+                                  >
+                                    <Text style={[styles.coachNoPlanBtnText, { color: pi.color }]}>
+                                      {pi.label}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
                           </View>
                         ))}
                       </>
@@ -2522,5 +2878,329 @@ const styles = StyleSheet.create({
     color: C.muted,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
+  },
+  coachCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  coachHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    padding: 14,
+  },
+  coachHeaderLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  coachHeaderRight: {
+    alignItems: "flex-end",
+  },
+  coachName: {
+    color: C.text,
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 4,
+  },
+  coachMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  coachPlanBadge: {
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  coachPlanText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+  },
+  coachStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  coachStatusLabel: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  checkInDone: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  checkInMissing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  checkInStatusText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachDetail: {
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    padding: 14,
+    paddingTop: 12,
+  },
+  coachSectionLabel: {
+    color: C.dim,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  coachCheckInCard: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  coachRatingRow: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  coachRatingItem: {
+    alignItems: "center",
+  },
+  coachRatingLabel: {
+    color: C.dim,
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  coachRatingVal: {
+    color: C.text,
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+  },
+  coachFieldRow: {
+    marginBottom: 8,
+  },
+  coachFieldLabel: {
+    color: C.dim,
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.2,
+    marginBottom: 3,
+  },
+  coachFieldValue: {
+    color: C.text,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 19,
+  },
+  coachReplyDone: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: `${C.green}0f`,
+    borderRadius: 6,
+    padding: 8,
+  },
+  coachReplyDoneText: {
+    color: C.green,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+    lineHeight: 18,
+  },
+  coachReplyBox: {
+    marginTop: 8,
+    gap: 8,
+  },
+  coachReplyInput: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    padding: 10,
+    color: C.text,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    minHeight: 72,
+    textAlignVertical: "top",
+  },
+  coachReplyBtn: {
+    backgroundColor: C.orange,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  coachReplyBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachNoCheckIn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: `#e8404012`,
+    borderWidth: 1,
+    borderColor: `#e8404033`,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  coachNoCheckInText: {
+    color: "#e84040",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
+  coachPrevCard: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 6,
+  },
+  coachPrevTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  coachPrevWeek: {
+    color: C.text,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachPrevRatings: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  coachPrevRating: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachPrevQ: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+  },
+  coachSubRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 8,
+  },
+  coachSubPill: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    padding: 8,
+    alignItems: "center",
+  },
+  coachSubPillText: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 2,
+  },
+  coachSubPillPrice: {
+    color: C.dim,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  coachSubActions: {
+    gap: 6,
+    marginBottom: 8,
+  },
+  coachSubStatusBtn: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    padding: 10,
+    alignItems: "center",
+  },
+  coachSubStatusText: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachSubRemoveBtn: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  coachSubRemoveText: {
+    color: "#e84040",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachEmailBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  coachEmailBtnText: {
+    color: C.dim,
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  coachNoPlanCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  coachNoPlanName: {
+    color: C.text,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 2,
+  },
+  coachNoPlanEmail: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  coachNoPlanActions: {
+    flexDirection: "row",
+    gap: 5,
+  },
+  coachNoPlanBtn: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  coachNoPlanBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
   },
 });

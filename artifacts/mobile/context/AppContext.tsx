@@ -20,6 +20,8 @@ import {
   Message,
   AvailSlot,
   StoreOrder,
+  SubscriptionInfo,
+  WeeklyCheckIn,
   Worksheet,
   EMPTY,
   loadData,
@@ -77,6 +79,9 @@ interface AppContextValue {
   submitFormCheck: (r: FormCheckRequest) => void;
   submitCoachingInquiry: (r: CoachingInquiry) => void;
   markInquiryContacted: (id: string, type: "formcheck" | "coaching") => void;
+  submitWeeklyCheckIn: (checkIn: WeeklyCheckIn) => void;
+  replyToCheckIn: (checkInId: string, reply: string) => void;
+  setClientSubscription: (clientId: number, info: SubscriptionInfo | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -407,6 +412,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [updateData]
   );
 
+  const submitWeeklyCheckIn = useCallback(
+    (checkIn: WeeklyCheckIn) => {
+      updateData((d) => {
+        if (!d.weeklyCheckIns) d.weeklyCheckIns = [];
+        const existing = d.weeklyCheckIns.findIndex(
+          (c) => c.clientId === checkIn.clientId && c.weekOf === checkIn.weekOf
+        );
+        if (existing > -1) d.weeklyCheckIns[existing] = checkIn;
+        else d.weeklyCheckIns.push(checkIn);
+        return d;
+      });
+    },
+    [updateData]
+  );
+
+  const replyToCheckIn = useCallback(
+    (checkInId: string, reply: string) => {
+      updateData((d) => {
+        if (!d.weeklyCheckIns) d.weeklyCheckIns = [];
+        const c = d.weeklyCheckIns.find((x) => x.id === checkInId);
+        if (c) {
+          c.trainerReply = reply;
+          c.trainerRepliedAt = nowTs();
+          c.trainerRead = true;
+        }
+        return d;
+      });
+    },
+    [updateData]
+  );
+
+  const setClientSubscription = useCallback(
+    (clientId: number, info: SubscriptionInfo | null) => {
+      updateData((d) => {
+        const c = d.clients.find((x) => x.id === clientId);
+        if (c) c.subscription = info ?? undefined;
+        return d;
+      });
+    },
+    [updateData]
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -436,6 +483,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         submitFormCheck,
         submitCoachingInquiry,
         markInquiryContacted,
+        submitWeeklyCheckIn,
+        replyToCheckIn,
+        setClientSubscription,
       }}
     >
       {children}

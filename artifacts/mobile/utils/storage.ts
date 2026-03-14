@@ -30,6 +30,75 @@ export interface ChallengeLog {
   timestamp: string;
 }
 
+export type SubscriptionPlan = "standard" | "full" | "elite";
+
+export interface SubscriptionInfo {
+  plan: SubscriptionPlan;
+  status: "active" | "paused" | "cancelled";
+  startedAt: string;
+  notes?: string;
+}
+
+export const SUBSCRIPTION_PLANS: Record<
+  SubscriptionPlan,
+  { label: string; price: number; color: string; tagline: string; includes: string[] }
+> = {
+  standard: {
+    label: "Standard",
+    price: 100,
+    color: "#4a9eff",
+    tagline: "The foundation",
+    includes: [
+      "Custom monthly training program",
+      "Weekly check-in review from Matt",
+      "Technique feedback via message",
+      "Progress & PR tracking",
+    ],
+  },
+  full: {
+    label: "Full",
+    price: 150,
+    color: "#9b59b6",
+    tagline: "The complete package",
+    includes: [
+      "Everything in Standard",
+      "Bi-weekly program updates",
+      "Nutrition guidance",
+      "Priority same-day response",
+      "Monthly video check-in call",
+    ],
+  },
+  elite: {
+    label: "Elite",
+    price: 200,
+    color: "#e8621a",
+    tagline: "All-access coaching",
+    includes: [
+      "Everything in Full",
+      "Daily text access to Matt",
+      "Real-time program adjustments",
+      "Meet prep included",
+      "On-call anytime access",
+    ],
+  },
+};
+
+export interface WeeklyCheckIn {
+  id: string;
+  clientId: number;
+  weekOf: string;
+  trainingQuality: number;
+  energyRecovery: number;
+  bodyWeight?: number;
+  wins: string;
+  struggles: string;
+  questionsForMatt: string;
+  submittedAt: string;
+  trainerReply?: string;
+  trainerRepliedAt?: string;
+  trainerRead?: boolean;
+}
+
 export interface Client {
   id: number;
   name: string;
@@ -43,6 +112,7 @@ export interface Client {
   challengeLogs: ChallengeLog[];
   challengeOptIns: Record<string, boolean>;
   payments: unknown[];
+  subscription?: SubscriptionInfo;
 }
 
 export interface Challenge {
@@ -229,6 +299,7 @@ export interface AppData {
   storeOrders: StoreOrder[];
   formCheckRequests: FormCheckRequest[];
   coachingInquiries: CoachingInquiry[];
+  weeklyCheckIns: WeeklyCheckIn[];
   nextId: number;
   homeContent: HomeContent;
 }
@@ -314,6 +385,7 @@ export const EMPTY: AppData = {
   storeOrders: [],
   formCheckRequests: [],
   coachingInquiries: [],
+  weeklyCheckIns: [],
   nextId: 1,
   homeContent: DEFAULT_HOME,
 };
@@ -378,6 +450,14 @@ export function fmtS(iso: string): string {
   });
 }
 
+export function getMonday(date: Date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d.toISOString().split("T")[0];
+}
+
 export function fmtTime(t: string): string {
   const [h, m] = t.split(":");
   const hr = +h;
@@ -397,6 +477,7 @@ export async function loadData(): Promise<AppData> {
     if (!parsed.storeOrders) parsed.storeOrders = [];
     if (!parsed.formCheckRequests) parsed.formCheckRequests = [];
     if (!parsed.coachingInquiries) parsed.coachingInquiries = [];
+    if (!parsed.weeklyCheckIns) parsed.weeklyCheckIns = [];
     return parsed;
   } catch {
     return EMPTY;
