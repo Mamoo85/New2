@@ -396,15 +396,6 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        {/* FOOTER QUOTES */}
-        <View style={styles.footerQuotes}>
-          {quotes.slice(0, 4).map((q, i) => (
-            <View key={i} style={styles.footerQuoteCard}>
-              <Text style={styles.footerQuoteText}>"{q}"</Text>
-            </View>
-          ))}
-        </View>
-
         {/* FIND US */}
         <View style={styles.findUsCard}>
           <Text style={styles.findUsLabel}>FIND US</Text>
@@ -441,17 +432,6 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* JOKE BUTTON */}
-        <Pressable
-          style={styles.jokeBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            router.push("/trippy");
-          }}
-        >
-          <Text style={styles.jokeBtnText}>DO NOT CLICK THIS!</Text>
-        </Pressable>
-
         {/* FOOTER */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -463,25 +443,7 @@ export default function HomeScreen() {
             </Pressable>
             <Text style={styles.footerDot}>·</Text>
             <Pressable
-              onPress={() =>
-                Linking.openURL(`mailto:${BUSINESS.email}`).catch(() => {})
-              }
-            >
-              <Text style={styles.footerLink}>Contact</Text>
-            </Pressable>
-            <Text style={styles.footerDot}>·</Text>
-            <Pressable
-              onPress={() =>
-                Linking.openURL(BUSINESS.mapsUrl).catch(() => {})
-              }
-            >
-              <Text style={styles.footerLink}>Directions</Text>
-            </Pressable>
-            <Text style={styles.footerDot}>·</Text>
-            <Pressable
-              onPress={() =>
-                Linking.openURL(BUSINESS.facebookUrl).catch(() => {})
-              }
+              onPress={() => Linking.openURL(BUSINESS.facebookUrl).catch(() => {})}
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
               <Ionicons name="logo-facebook" size={12} color={C.orange} />
@@ -610,8 +572,8 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 6,
+    paddingTop: 14,
+    paddingBottom: 4,
     gap: 8,
   },
   statCard: {
@@ -620,7 +582,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 8,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: "center",
   },
   statValue: {
@@ -1040,25 +1002,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
   },
-  footerQuotes: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  footerQuoteCard: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 14,
-  },
-  footerQuoteText: {
-    color: C.dim,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    fontStyle: "italic",
-    lineHeight: 20,
-  },
   findUsCard: {
     marginHorizontal: 16,
     marginBottom: 16,
@@ -1066,9 +1009,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   findUsLabel: {
     color: C.dim,
@@ -1155,22 +1098,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },
-  jokeBtn: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 2,
-    borderColor: "#ff1493",
-    borderRadius: 8,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  jokeBtnText: {
-    color: "#ff1493",
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 1,
-  },
 });
+

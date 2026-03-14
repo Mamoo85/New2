@@ -236,7 +236,7 @@ export default function LoginScreen() {
           <View style={styles.center}>
             <Text style={styles.title}>Sign in</Text>
             <Text style={styles.subtitle}>
-              20+ years. 50+ college athletes produced. Zero injuries.
+              Welcome back.
             </Text>
 
             {GOOGLE_CLIENT_ID ? (
