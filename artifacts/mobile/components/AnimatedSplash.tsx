@@ -25,16 +25,15 @@ const M_H = 148;
 const BAR_H = 32;
 const PIL_W = 44;
 const PIL_H = M_H - BAR_H;
-const GAP = (M_W - PIL_W * 3) / 2;
 
 const M_LEFT = (IMG_W - M_W) / 2;
 const M_TOP = (IMG_H - M_H) / 2 - 8;
 
 export function AnimatedSplash({ onFinished }: Props) {
-  // Pillars rise from below  → start at +220 (below), end at 0
+  // Left pillar rises from below  → start at +220 (below), end at 0
   const pY0 = useRef(new Animated.Value(220)).current;
+  // Right pillar rises from below (slight delay)
   const pY1 = useRef(new Animated.Value(220)).current;
-  const pY2 = useRef(new Animated.Value(220)).current;
 
   // Crossbar drops from above → start at -180 (above), end at 0
   const barY = useRef(new Animated.Value(-180)).current;
@@ -59,16 +58,12 @@ export function AnimatedSplash({ onFinished }: Props) {
     const drop = { tension: 90, friction: 6, useNativeDriver: ND };
 
     Animated.sequence([
-      // Phase 1: Pillars rise up (staggered), crossbar drops after pillars land
+      // Phase 1: Left + right pillars rise (staggered), crossbar drops after
       Animated.parallel([
         Animated.spring(pY0, { toValue: 0, ...up }),
         Animated.sequence([
-          Animated.delay(55),
+          Animated.delay(80),
           Animated.spring(pY1, { toValue: 0, ...up }),
-        ]),
-        Animated.sequence([
-          Animated.delay(110),
-          Animated.spring(pY2, { toValue: 0, ...up }),
         ]),
         Animated.sequence([
           Animated.delay(290),
@@ -203,30 +198,14 @@ export function AnimatedSplash({ onFinished }: Props) {
               </Svg>
             </Animated.View>
 
-            {/* Center pillar — rises from below */}
+            {/* Right pillar — rises from below (slight delay) */}
             <Animated.View
               style={[
                 styles.pillar,
                 {
-                  left: PIL_W + GAP,
+                  left: M_W - PIL_W,
                   top: BAR_H,
                   transform: [{ translateY: pY1 }],
-                },
-              ]}
-            >
-              <Svg width={PIL_W} height={PIL_H}>
-                <Rect width={PIL_W} height={PIL_H} fill={C.orange} />
-              </Svg>
-            </Animated.View>
-
-            {/* Right pillar — rises from below */}
-            <Animated.View
-              style={[
-                styles.pillar,
-                {
-                  left: PIL_W * 2 + GAP * 2,
-                  top: BAR_H,
-                  transform: [{ translateY: pY2 }],
                 },
               ]}
             >
@@ -269,23 +248,22 @@ export function AnimatedSplash({ onFinished }: Props) {
             2
           </Animated.Text>
 
-          {/* "TRAINING" wordmark */}
-          <Animated.View
+          {/* "training" wordmark */}
+          <Animated.Text
             style={[
-              styles.tagWrap,
+              styles.tagText,
               {
                 position: "absolute",
-                top: M_TOP + M_H + 14,
+                top: M_TOP + M_H + 12,
                 left: 0,
                 right: 0,
+                textAlign: "center",
                 opacity: tagOp,
               },
             ]}
           >
-            <View style={styles.tagLine} />
-            <Text style={styles.tagText}>TRAINING</Text>
-            <View style={styles.tagLine} />
-          </Animated.View>
+            training
+          </Animated.Text>
         </Animated.View>
       </View>
     </Animated.View>
@@ -350,21 +328,10 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     lineHeight: 40,
   },
-  tagWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  tagLine: {
-    width: 28,
-    height: 1,
-    backgroundColor: C.dim,
-  },
   tagText: {
-    color: C.dim,
-    fontSize: 13,
+    color: C.orange,
+    fontSize: 22,
     fontFamily: "Inter_700Bold",
-    letterSpacing: 5,
+    letterSpacing: 2,
   },
 });
