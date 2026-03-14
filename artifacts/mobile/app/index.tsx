@@ -155,7 +155,7 @@ export default function HomeScreen() {
             <Text style={styles.portalCardLabel}>CURRENT CLIENTS</Text>
             <Text style={styles.portalCardTitle}>Already training with Matt?</Text>
             <Text style={styles.portalCardBody}>
-              Log a lift  ·  View progress  ·  Book a session  ·  Matt's notes
+              Log a lift  ·  View progress  ·  Book a session
             </Text>
           </View>
           <View style={styles.portalCardBtn}>
