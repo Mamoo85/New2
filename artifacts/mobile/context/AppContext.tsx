@@ -12,6 +12,7 @@ import {
   Client,
   Challenge,
   CustomProgram,
+  GroupClassInterest,
   HelpRequest,
   HomeContent,
   Message,
@@ -67,6 +68,7 @@ interface AppContextValue {
   saveProgram: (program: CustomProgram) => void;
   deliverProgram: (programId: string) => void;
   markProgramViewed: (programId: string) => void;
+  submitGroupInterest: (interest: GroupClassInterest) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -322,6 +324,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [updateData]
   );
 
+  const submitGroupInterest = useCallback(
+    (interest: GroupClassInterest) => {
+      updateData((d) => {
+        if (!d.groupClassInterests) d.groupClassInterests = [];
+        d.groupClassInterests.push(interest);
+        return d;
+      });
+    },
+    [updateData]
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -345,6 +358,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveProgram,
         deliverProgram,
         markProgramViewed,
+        submitGroupInterest,
       }}
     >
       {children}

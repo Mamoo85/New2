@@ -154,6 +154,23 @@ export interface HomeContent {
   quotes: string[];
 }
 
+export type GroupClassType =
+  | "weekend_rolling"
+  | "youth_14_16"
+  | "youth_17_18";
+
+export interface GroupClassInterest {
+  id: string;
+  classType: GroupClassType;
+  name: string;
+  email: string;
+  phone?: string;
+  athleteName?: string;
+  sport?: string;
+  notes?: string;
+  submittedAt: string;
+}
+
 export interface AppData {
   clients: Client[];
   challenges: Challenge[];
@@ -164,6 +181,7 @@ export interface AppData {
   worksheets: Worksheet[];
   helpRequests: HelpRequest[];
   customPrograms: CustomProgram[];
+  groupClassInterests: GroupClassInterest[];
   nextId: number;
   homeContent: HomeContent;
 }
@@ -245,6 +263,7 @@ export const EMPTY: AppData = {
   worksheets: [],
   helpRequests: [],
   customPrograms: [],
+  groupClassInterests: [],
   nextId: 1,
   homeContent: DEFAULT_HOME,
 };
@@ -324,6 +343,7 @@ export async function loadData(): Promise<AppData> {
     if (!parsed.helpRequests) parsed.helpRequests = [];
     if (!parsed.sessionTypes) parsed.sessionTypes = DEFAULT_SESSION_TYPES;
     if (!parsed.customPrograms) parsed.customPrograms = [];
+    if (!parsed.groupClassInterests) parsed.groupClassInterests = [];
     return parsed;
   } catch {
     return EMPTY;

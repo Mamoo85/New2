@@ -279,6 +279,44 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* STORE CARD */}
+        <Pressable
+          style={[styles.storeCard]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/store");
+          }}
+        >
+          <View style={styles.storeCardInner}>
+            <View style={styles.storeLeft}>
+              <Text style={styles.storeLabel}>DIGITAL PACK · $20</Text>
+              <Text style={styles.storeTitle}>Workouts on the Road</Text>
+              <Text style={styles.storeSub}>10 complete workouts. No gym needed. Hotel rooms, airports, parking lots.</Text>
+            </View>
+            <View style={styles.storeBadge}>
+              <Feather name="package" size={22} color={C.orange} />
+            </View>
+          </View>
+        </Pressable>
+
+        {/* GROUP CLASSES CARD */}
+        <Pressable
+          style={styles.classCard}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/group-classes");
+          }}
+        >
+          <View style={styles.classCardInner}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.classLabel}>WEEKEND & YOUTH PROGRAMS</Text>
+              <Text style={styles.classTitle}>Group classes coming soon</Text>
+              <Text style={styles.classSub}>Weekend rolling classes · Youth strength 14–16 · Youth strength 17–18</Text>
+              <Text style={[styles.classSub, { color: C.orange, marginTop: 6 }]}>Sign up for early access →</Text>
+            </View>
+          </View>
+        </Pressable>
+
         {/* HELP CTA */}
         <Pressable
           style={styles.helpCard}
@@ -673,6 +711,83 @@ const styles = StyleSheet.create({
   leaderScore: {
     fontSize: 13,
     fontFamily: "Inter_700Bold",
+  },
+  storeCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: `${C.orange}55`,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  storeCardInner: {
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  storeLeft: {
+    flex: 1,
+  },
+  storeLabel: {
+    color: C.orange,
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  storeTitle: {
+    color: C.text,
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 4,
+  },
+  storeSub: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  storeBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: `${C.orange}1a`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  classCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: `${C.green}44`,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  classCardInner: {
+    padding: 18,
+  },
+  classLabel: {
+    color: C.green,
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  classTitle: {
+    color: C.text,
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 4,
+  },
+  classSub: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
   },
   helpCard: {
     backgroundColor: C.surface,

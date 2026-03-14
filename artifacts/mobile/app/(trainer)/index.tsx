@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -19,6 +20,7 @@ import { Tag } from "@/components/ui/Tag";
 import { LiftChart } from "@/components/LiftChart";
 
 type ClientView = "overview" | "log" | "messages" | "assessments" | "programs";
+type DashTab = "clients" | "mailing" | "signups";
 
 export default function ClientsScreen() {
   const { data, updateData, logout, saveProgram, deliverProgram } = useApp();
@@ -26,6 +28,7 @@ export default function ClientsScreen() {
   const [selId, setSelId] = useState<number | null>(null);
   const [view, setView] = useState<ClientView>("overview");
   const [search, setSearch] = useState("");
+  const [dashTab, setDashTab] = useState<DashTab>("clients");
 
   // Log form
   const [logLift, setLogLift] = useState(LIFTS[0]);
@@ -181,76 +184,221 @@ export default function ClientsScreen() {
       {/* CLIENT LIST */}
       {selId === null && (
         <View style={{ flex: 1 }}>
-          <View style={styles.searchRow}>
-            <Feather name="search" size={16} color={C.dim} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.searchInput}
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search clients..."
-              placeholderTextColor={C.muted}
-            />
-          </View>
-          <ScrollView
-            contentContainerStyle={[
-              styles.scroll,
-              {
-                paddingBottom:
-                  (Platform.OS === "web" ? 34 : insets.bottom) + 100,
-              },
-            ]}
-          >
-            {clients.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Feather name="users" size={36} color={C.muted} />
-                <Text style={styles.emptyText}>
-                  {search ? "No clients match your search." : "No clients yet."}
-                </Text>
-                {!search && (
-                  <Text style={styles.emptySubText}>
-                    Clients sign up from the home screen.
+          {/* DASH TABS */}
+          <View style={styles.dashTabs}>
+            {(["clients", "mailing", "signups"] as DashTab[]).map((tab) => {
+              const label = tab === "clients" ? "Clients" : tab === "mailing" ? "Mailing List" : "Class Sign-ups";
+              const count = tab === "clients" ? data.clients.length : tab === "mailing"
+                ? [...new Set([
+                    ...data.clients.filter(c => !!c.email).map(c => c.email!),
+                    ...(data.groupClassInterests || []).map(g => g.email),
+                  ])].length
+                : (data.groupClassInterests || []).length;
+              return (
+                <Pressable
+                  key={tab}
+                  style={[styles.dashTab, dashTab === tab && styles.dashTabActive]}
+                  onPress={() => setDashTab(tab)}
+                >
+                  <Text style={[styles.dashTabText, dashTab === tab && styles.dashTabTextActive]}>
+                    {label}
                   </Text>
-                )}
-              </View>
-            ) : (
-              clients.map((c) => {
-                const uc = unreadCount(c.id);
-                const sessions = [...new Set(c.entries.map((e) => e.date))].length;
-                return (
-                  <Pressable
-                    key={c.id}
-                    style={styles.clientCard}
-                    onPress={() => openClient(c.id)}
-                  >
-                    <View style={styles.clientLeft}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>
-                          {c.name.split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.clientName}>{c.name}</Text>
-                        {!!c.goal && (
-                          <Text style={styles.clientGoal} numberOfLines={1}>
-                            {c.goal}
-                          </Text>
-                        )}
-                        <Text style={styles.clientMeta}>
-                          @{c.username} · {sessions} sessions
-                        </Text>
-                      </View>
+                  {count > 0 && (
+                    <View style={[styles.dashTabBadge, dashTab === tab && styles.dashTabBadgeActive]}>
+                      <Text style={[styles.dashTabBadgeText, dashTab === tab && styles.dashTabBadgeTextActive]}>
+                        {count}
+                      </Text>
                     </View>
-                    {uc > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{uc}</Text>
-                      </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* CLIENTS TAB */}
+          {dashTab === "clients" && (
+            <>
+              <View style={styles.searchRow}>
+                <Feather name="search" size={16} color={C.dim} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search clients..."
+                  placeholderTextColor={C.muted}
+                />
+              </View>
+              <ScrollView
+                contentContainerStyle={[
+                  styles.scroll,
+                  { paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100 },
+                ]}
+              >
+                {clients.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Feather name="users" size={36} color={C.muted} />
+                    <Text style={styles.emptyText}>
+                      {search ? "No clients match your search." : "No clients yet."}
+                    </Text>
+                    {!search && (
+                      <Text style={styles.emptySubText}>Clients sign up from the home screen.</Text>
                     )}
-                    <Feather name="chevron-right" size={18} color={C.muted} />
+                  </View>
+                ) : (
+                  clients.map((c) => {
+                    const uc = unreadCount(c.id);
+                    const sessions = [...new Set(c.entries.map((e) => e.date))].length;
+                    return (
+                      <Pressable key={c.id} style={styles.clientCard} onPress={() => openClient(c.id)}>
+                        <View style={styles.clientLeft}>
+                          <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>
+                              {c.name.split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.clientName}>{c.name}</Text>
+                            {!!c.goal && (
+                              <Text style={styles.clientGoal} numberOfLines={1}>{c.goal}</Text>
+                            )}
+                            <Text style={styles.clientMeta}>
+                              @{c.username} · {sessions} sessions
+                            </Text>
+                          </View>
+                        </View>
+                        {uc > 0 && (
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{uc}</Text>
+                          </View>
+                        )}
+                        <Feather name="chevron-right" size={18} color={C.muted} />
+                      </Pressable>
+                    );
+                  })
+                )}
+              </ScrollView>
+            </>
+          )}
+
+          {/* MAILING LIST TAB */}
+          {dashTab === "mailing" && (() => {
+            const clientEmails = data.clients.filter(c => !!c.email).map(c => ({ name: c.name, email: c.email!, source: "client" as const }));
+            const interestEmails = (data.groupClassInterests || []).map(g => ({ name: g.name, email: g.email, source: "signup" as const }));
+            const allEmails = [...clientEmails];
+            interestEmails.forEach(ie => {
+              if (!allEmails.find(e => e.email.toLowerCase() === ie.email.toLowerCase())) {
+                allEmails.push(ie);
+              }
+            });
+            const mailtoAll = `mailto:?bcc=${allEmails.map(e => encodeURIComponent(`${e.name} <${e.email}>`)).join(",")}`;
+            return (
+              <View style={{ flex: 1 }}>
+                <View style={styles.mailingHeader}>
+                  <View>
+                    <Text style={styles.mailingCount}>{allEmails.length} addresses</Text>
+                    <Text style={styles.mailingNote}>Clients + class sign-up list</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.quickMailBtn, allEmails.length === 0 && { opacity: 0.4 }]}
+                    disabled={allEmails.length === 0}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      Linking.openURL(mailtoAll).catch(() => {});
+                    }}
+                  >
+                    <Feather name="send" size={14} color="#fff" />
+                    <Text style={styles.quickMailText}>Quick Email</Text>
                   </Pressable>
-                );
-              })
-            )}
-          </ScrollView>
+                </View>
+                <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100 }]}>
+                  {allEmails.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <Feather name="mail" size={36} color={C.muted} />
+                      <Text style={styles.emptyText}>No emails yet.</Text>
+                      <Text style={styles.emptySubText}>Clients who sign up will appear here.</Text>
+                    </View>
+                  ) : (
+                    allEmails.map((e, i) => (
+                      <Pressable
+                        key={i}
+                        style={styles.emailRow}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          Linking.openURL(`mailto:${e.email}`).catch(() => {});
+                        }}
+                      >
+                        <View style={styles.emailAvatar}>
+                          <Text style={styles.emailAvatarText}>
+                            {e.name.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.emailName}>{e.name}</Text>
+                          <Text style={styles.emailAddr}>{e.email}</Text>
+                        </View>
+                        <View style={[styles.sourceTag, e.source === "signup" && styles.sourceTagSignup]}>
+                          <Text style={[styles.sourceTagText, e.source === "signup" && styles.sourceTagTextSignup]}>
+                            {e.source === "client" ? "client" : "signup"}
+                          </Text>
+                        </View>
+                        <Feather name="mail" size={16} color={C.muted} />
+                      </Pressable>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
+            );
+          })()}
+
+          {/* CLASS SIGN-UPS TAB */}
+          {dashTab === "signups" && (() => {
+            const interests = data.groupClassInterests || [];
+            const CLASS_LABELS: Record<string, string> = {
+              weekend_rolling: "Weekend Rolling Classes",
+              youth_14_16: "Youth 14–16",
+              youth_17_18: "Youth 17–18",
+            };
+            return (
+              <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100 }]}>
+                {interests.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Feather name="calendar" size={36} color={C.muted} />
+                    <Text style={styles.emptyText}>No sign-ups yet.</Text>
+                    <Text style={styles.emptySubText}>When people express interest in group classes, they appear here.</Text>
+                  </View>
+                ) : (
+                  <>
+                    {(["weekend_rolling", "youth_14_16", "youth_17_18"] as const).map((cls) => {
+                      const group = interests.filter(i => i.classType === cls);
+                      if (group.length === 0) return null;
+                      return (
+                        <View key={cls} style={{ marginBottom: 20 }}>
+                          <Text style={styles.signupGroupLabel}>{CLASS_LABELS[cls]} ({group.length})</Text>
+                          {group.map((sg) => (
+                            <Pressable
+                              key={sg.id}
+                              style={styles.signupCard}
+                              onPress={() => Linking.openURL(`mailto:${sg.email}`).catch(() => {})}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.signupName}>{sg.name}</Text>
+                                <Text style={styles.signupEmail}>{sg.email}</Text>
+                                {!!sg.phone && <Text style={styles.signupMeta}>{sg.phone}</Text>}
+                                {!!sg.athleteName && <Text style={styles.signupMeta}>Athlete: {sg.athleteName}</Text>}
+                                {!!sg.sport && <Text style={styles.signupMeta}>Sport: {sg.sport}</Text>}
+                                {!!sg.notes && <Text style={styles.signupNote} numberOfLines={2}>{sg.notes}</Text>}
+                              </View>
+                              <Feather name="mail" size={16} color={C.muted} />
+                            </Pressable>
+                          ))}
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+              </ScrollView>
+            );
+          })()}
         </View>
       )}
 
@@ -1670,5 +1818,178 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 16,
+  },
+  dashTabs: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    backgroundColor: C.bg,
+  },
+  dashTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    gap: 5,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  dashTabActive: {
+    borderBottomColor: C.orange,
+  },
+  dashTabText: {
+    color: C.muted,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  dashTabTextActive: {
+    color: C.orange,
+  },
+  dashTabBadge: {
+    backgroundColor: C.border,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: "center",
+  },
+  dashTabBadgeActive: {
+    backgroundColor: `${C.orange}22`,
+  },
+  dashTabBadgeText: {
+    color: C.muted,
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+  },
+  dashTabBadgeTextActive: {
+    color: C.orange,
+  },
+  mailingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  mailingCount: {
+    color: C.text,
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  mailingNote: {
+    color: C.muted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  quickMailBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: C.orange,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  quickMailText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  emailAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${C.orange}22`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emailAvatarText: {
+    color: C.orange,
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+  },
+  emailName: {
+    color: C.text,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  emailAddr: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  sourceTag: {
+    backgroundColor: `${C.orange}14`,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  sourceTagSignup: {
+    backgroundColor: `${C.green}14`,
+  },
+  sourceTagText: {
+    color: C.orange,
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+  },
+  sourceTagTextSignup: {
+    color: C.green,
+  },
+  signupGroupLabel: {
+    color: C.dim,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  signupCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  signupName: {
+    color: C.text,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  signupEmail: {
+    color: C.dim,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  signupMeta: {
+    color: C.muted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  signupNote: {
+    color: C.muted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    fontStyle: "italic",
+    marginTop: 4,
   },
 });

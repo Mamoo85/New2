@@ -48,9 +48,11 @@ export default function LoginScreen() {
   };
 
   const tryClient = () => {
+    const input = user.trim().toLowerCase();
     const f = data.clients.find(
       (c) =>
-        c.username?.toLowerCase() === user.toLowerCase() &&
+        (c.username?.toLowerCase() === input ||
+          c.email?.toLowerCase() === input) &&
         c.clientPassword === cpw
     );
     if (f) {
@@ -59,7 +61,7 @@ export default function LoginScreen() {
       router.replace("/(client)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setErr("Incorrect username or password.");
+      setErr("Incorrect username, email, or password.");
       setCpw("");
     }
   };
@@ -219,10 +221,10 @@ export default function LoginScreen() {
         {mode === "client" && (
           <View style={styles.form}>
             <Text style={styles.formTitle}>Client Login</Text>
-            <Text style={styles.formLabel}>Username</Text>
+            <Text style={styles.formLabel}>Username or email</Text>
             <TextInput
               style={styles.input}
-              placeholder="Your username"
+              placeholder="Your username or email"
               placeholderTextColor={C.muted}
               value={user}
               onChangeText={(t) => {
@@ -230,6 +232,7 @@ export default function LoginScreen() {
                 setErr("");
               }}
               autoCapitalize="none"
+              keyboardType="email-address"
               autoFocus
             />
             <Text style={styles.formLabel}>Password</Text>
