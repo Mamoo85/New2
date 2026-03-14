@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -454,40 +455,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [updateData]
   );
 
+  const ctxValue = useMemo(
+    () => ({
+      data,
+      isLoading,
+      updateData,
+      currentClientId,
+      isTrainer,
+      loginTrainer,
+      loginClient,
+      logout,
+      signUp,
+      sendMessage,
+      logChallenge,
+      toggleOptIn,
+      addBooking,
+      submitAssessment,
+      saveWorksheet,
+      submitHelpRequest,
+      requestProgram,
+      saveProgram,
+      deliverProgram,
+      markProgramViewed,
+      submitGroupInterest,
+      submitStoreOrder,
+      markStoreOrderSent,
+      submitFormCheck,
+      submitCoachingInquiry,
+      markInquiryContacted,
+      submitWeeklyCheckIn,
+      replyToCheckIn,
+      setClientSubscription,
+    }),
+    [
+      data, isLoading, updateData, currentClientId, isTrainer,
+      loginTrainer, loginClient, logout, signUp, sendMessage,
+      logChallenge, toggleOptIn, addBooking, submitAssessment,
+      saveWorksheet, submitHelpRequest, requestProgram, saveProgram,
+      deliverProgram, markProgramViewed, submitGroupInterest,
+      submitStoreOrder, markStoreOrderSent, submitFormCheck,
+      submitCoachingInquiry, markInquiryContacted, submitWeeklyCheckIn,
+      replyToCheckIn, setClientSubscription,
+    ]
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        data,
-        isLoading,
-        updateData,
-        currentClientId,
-        isTrainer,
-        loginTrainer,
-        loginClient,
-        logout,
-        signUp,
-        sendMessage,
-        logChallenge,
-        toggleOptIn,
-        addBooking,
-        submitAssessment,
-        saveWorksheet,
-        submitHelpRequest,
-        requestProgram,
-        saveProgram,
-        deliverProgram,
-        markProgramViewed,
-        submitGroupInterest,
-        submitStoreOrder,
-        markStoreOrderSent,
-        submitFormCheck,
-        submitCoachingInquiry,
-        markInquiryContacted,
-        submitWeeklyCheckIn,
-        replyToCheckIn,
-        setClientSubscription,
-      }}
-    >
+    <AppContext.Provider value={ctxValue}>
       {children}
     </AppContext.Provider>
   );
