@@ -8,12 +8,12 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-
+import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { AppProvider } from "@/context/AppContext";
 import C from "@/constants/colors";
 
@@ -46,13 +46,20 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const [splashDone, setSplashDone] = useState(false);
+  const ready = fontsLoaded || !!fontError;
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [ready]);
 
-  if (!fontsLoaded && !fontError) return null;
+  const handleSplashFinished = useCallback(() => {
+    setSplashDone(true);
+  }, []);
+
+  if (!ready) return null;
 
   return (
     <SafeAreaProvider>
@@ -61,6 +68,9 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <AppProvider>
               <RootLayoutNav />
+              {!splashDone && (
+                <AnimatedSplash onFinished={handleSplashFinished} />
+              )}
             </AppProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
