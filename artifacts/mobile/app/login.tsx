@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -28,15 +28,34 @@ WebBrowser.maybeCompleteAuthSession();
 const ADMIN_EMAIL = BUSINESS.email;
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
+const GOOGLE_OAUTH_STATE_KEY = "m2_google_oauth_state";
+
 type Mode = "choose" | "email" | "email-trainer-pw" | "trainer-pw";
 
-// ── Inner component that uses Google hook (only when Client ID is set) ───────
+// ── Web: direct browser redirect to Google OAuth ──────────────────────────────
+function startGoogleOAuthWeb() {
+  if (typeof window === "undefined") return;
+  const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try { sessionStorage.setItem(GOOGLE_OAUTH_STATE_KEY, state); } catch {}
+  const redirectUri = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: "token",
+    scope: "email profile",
+    state,
+  });
+  window.location.href =
+    "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
+}
+
+// ── Inner component that uses Google hook (native only) ───────────────────────
 type GoogleBtnProps = {
   onSuccess: (token: string) => void;
   onError: (msg: string) => void;
 };
 
-function GoogleSignInButton({ onSuccess, onError }: GoogleBtnProps) {
+function GoogleSignInButtonNative({ onSuccess, onError }: GoogleBtnProps) {
   const [loading, setLoading] = useState(false);
   const [, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID,
@@ -80,6 +99,23 @@ function GoogleSignInButton({ onSuccess, onError }: GoogleBtnProps) {
   );
 }
 
+function GoogleSignInButton({ onSuccess, onError }: GoogleBtnProps) {
+  if (Platform.OS === "web") {
+    return (
+      <Pressable
+        style={styles.socialBtn}
+        onPress={startGoogleOAuthWeb}
+      >
+        <View style={styles.googleIcon}>
+          <Text style={styles.googleIconText}>G</Text>
+        </View>
+        <Text style={styles.socialBtnText}>Continue with Google</Text>
+      </Pressable>
+    );
+  }
+  return <GoogleSignInButtonNative onSuccess={onSuccess} onError={onError} />;
+}
+
 function GoogleButtonDisabled() {
   return (
     <Pressable style={[styles.socialBtn, styles.btnDisabled]}>
@@ -106,6 +142,35 @@ export default function LoginScreen() {
   const [err, setErr] = useState("");
 
   const replitPending = React.useRef(false);
+  const googleWebProcessed = useRef(false);
+
+  // ── Web: parse #access_token returned by Google's redirect flow ─────────────
+  useEffect(() => {
+    if (Platform.OS !== "web" || googleWebProcessed.current) return;
+    if (typeof window === "undefined") return;
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const accessToken = hash.get("access_token");
+    const returnedState = hash.get("state");
+    if (!accessToken) return;
+
+    googleWebProcessed.current = true;
+    // Clean the URL immediately so other hooks don't re-process the fragment
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch {}
+
+    // Optional state check (best-effort, sessionStorage may be unavailable)
+    try {
+      const storedState = sessionStorage.getItem(GOOGLE_OAUTH_STATE_KEY);
+      sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
+      if (storedState && returnedState && storedState !== returnedState) {
+        setErr("Authentication error. Please try again.");
+        return;
+      }
+    } catch {}
+
+    handleGoogleToken(accessToken);
+  }, []);
 
   useEffect(() => {
     if (!replitPending.current || !auth.user) return;
